@@ -7,7 +7,13 @@ import db
 
 st.set_page_config(page_title='Smart Banking', page_icon='🏦', layout='wide')
 
-PAGES = ['Customer', 'Accounts and Transactions', 'Loans and Investments', 'Analytics']
+PAGES = [
+    'Customer',
+    'Accounts and Transactions',
+    'Loans and Investments',
+    'Analytics',
+    'Manage',
+]
 REQUEST_TYPES = ['Card Block', 'Address Update', 'Cheque Book', 'Loan Query', 'Statement', 'Other']
 
 GREEN, AMBER, RED, GREY = '#10D9A0', '#FFB020', '#FF5C6C', '#A1A1AA'
@@ -339,23 +345,13 @@ def analytics_screen():
                           for c in cycles], hide_index=True)
 
 
-if page == 'Customer':
-    customer_screen()
-elif page == 'Accounts and Transactions':
-    transactions_screen()
-elif page == 'Loans and Investments':
-    loans_screen()
-else:
-    analytics_screen()
-
-
 def manage_screen():
     page_title('Manage')
     show_notice()
- 
+
     tab_customer, tab_account, tab_contact, tab_close = st.tabs(
         ['Add customer', 'Open account', 'Update contact', 'Close account'])
- 
+
     with tab_customer:
         st.caption('The next customer ID will be ' + db.get_next_customer_id())
         with st.form('add_customer_form', clear_on_submit=True):
@@ -368,19 +364,22 @@ def manage_screen():
             if st.form_submit_button('Add customer'):
                 flash(db.add_customer(db.get_next_customer_id(), first_name, last_name,
                                       city, phone, email, customer_type))
- 
+
     with tab_account:
         branch_names = {b['branch_id']: b['branch_name'] for b in db.get_branches()}
         with st.form('open_account_form', clear_on_submit=True):
             customer_id = st.text_input('Customer ID').strip().upper()
-            branch_id = st.selectbox('Branch', list(branch_names),
-                                     format_func=lambda b: branch_names[b])
-            account_type = st.selectbox('Account type', db.ACCOUNT_TYPES)
-            opening = st.number_input('Opening balance', min_value=0.0, step=1000.0)
-            if st.form_submit_button('Open account'):
-                flash(db.open_account(db.get_next_account_number(), customer_id, branch_id,
-                                      account_type, opening))
- 
+            if not branch_names:
+                st.warning('No branches are available. Add branches to the database first.')
+            else:
+                branch_id = st.selectbox('Branch', list(branch_names),
+                                         format_func=lambda b: branch_names[b])
+                account_type = st.selectbox('Account type', db.ACCOUNT_TYPES)
+                opening = st.number_input('Opening balance', min_value=0.0, step=1000.0)
+                if st.form_submit_button('Open account'):
+                    flash(db.open_account(db.get_next_account_number(), customer_id, branch_id,
+                                          account_type, opening))
+
     with tab_contact:
         with st.form('contact_form', clear_on_submit=True):
             customer_id = st.text_input('Customer ID', key='contact_customer_id').strip().upper()
@@ -388,7 +387,7 @@ def manage_screen():
             email = st.text_input('New email', key='contact_email').strip()
             if st.form_submit_button('Update contact details'):
                 flash(db.update_customer_contact(customer_id, phone, email))
- 
+
     with tab_close:
         st.caption('An account can only be closed when its balance is 0. '
                    'It stays in the database with status Closed.')
@@ -401,3 +400,15 @@ def manage_screen():
                 else:
                     flash(db.close_account(account_number))
 
+
+# Route to the selected page only after all screen functions are defined.
+if page == 'Customer':
+    customer_screen()
+elif page == 'Accounts and Transactions':
+    transactions_screen()
+elif page == 'Loans and Investments':
+    loans_screen()
+elif page == 'Analytics':
+    analytics_screen()
+elif page == 'Manage':
+    manage_screen()
