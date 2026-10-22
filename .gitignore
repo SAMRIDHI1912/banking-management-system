@@ -1,0 +1,8 @@
+.env
+venv/
+venv.zip
+.venv/
+__pycache__/
+*.pyc
+mock_db.py
+old_app.py
